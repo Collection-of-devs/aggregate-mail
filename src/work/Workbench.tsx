@@ -638,6 +638,7 @@ function Proposal({ permissionAvailable, mcpEnabled = true, proposal, state, pen
   const account=state.accounts.find((account)=>account.id===proposal.accountId);
   const unavailable=!!proposal.sourceMailId&&!source;
   const stale = proposal.sourceChanged;
+  const needsMcp = proposal.origin !== "app" && !mcpEnabled;
   const action = { send: "Reply (opens as draft)", draft: "Save reply draft", archive: "Archive email", read: "Mark email as read" }[proposal.action];
   const sources = [...new Set([...("mailId" in payload ? [payload.mailId] : []), ...(proposal.sourceMailId ? [proposal.sourceMailId] : [])])];
   const sourceMails = sources.map((id) => state.messages.find((mail) => mail.id === id)).filter((mail): mail is Mail => !!mail);
@@ -651,9 +652,9 @@ function Proposal({ permissionAvailable, mcpEnabled = true, proposal, state, pen
     {stale&&<p role="alert">Evidence changed since this proposal. Reject it and request a fresh proposal.</p>}
     {proposal.action === "send" && proposal.status === "pending" && <p>Approval saves this reply to Drafts and opens it for editing. Nothing is sent until you press Send.</p>}
     {unavailable&&<p role="alert">Source unavailable. Refresh evidence before approval.</p>}
-    {proposal.status === "pending" && proposal.origin !== "app" && !mcpEnabled && <p role="alert">This proposal came from MCP or an older version. Turn on MCP in Settings to approve it.</p>}
+    {proposal.status === "pending" && needsMcp && <p role="alert">This proposal came from MCP or an older version. Turn on MCP in Settings to approve it.</p>}
     {proposal.status === "pending" && !permissionAvailable && <p role="alert">Assistant access is unavailable. This proposal cannot run.</p>}
-    {proposal.status === "pending"&&<><label><input type="checkbox" checked={reviewed} onChange={(event)=>setReviewed(event.target.checked)}/>I reviewed the exact account, recipients, content, attachments and change above.</label><button type="button" disabled={pending||!permissionAvailable||!reviewed||unavailable||stale||!account} onClick={()=>void onReview(true)}>{proposal.action==="send"?"Approve and open in Drafts":proposal.action === "draft" ? "Approve and save draft" : proposal.action === "archive" ? "Approve and archive email" : "Approve and mark as read"}</button><button type="button" disabled={pending} onClick={()=>void onReview(false)}>Reject proposal</button></>}
+    {proposal.status === "pending"&&<><label><input type="checkbox" checked={reviewed} onChange={(event)=>setReviewed(event.target.checked)}/>I reviewed the exact account, recipients, content, attachments and change above.</label><button type="button" disabled={pending||!permissionAvailable||!reviewed||unavailable||stale||!account||needsMcp} onClick={()=>void onReview(true)}>{proposal.action==="send"?"Approve and open in Drafts":proposal.action === "draft" ? "Approve and save draft" : proposal.action === "archive" ? "Approve and archive email" : "Approve and mark as read"}</button><button type="button" disabled={pending} onClick={()=>void onReview(false)}>Reject proposal</button></>}
     {proposal.receipt&&<p>{new Date(proposal.receipt.at).toLocaleString()} · <Redact text={proposal.receipt.message}/></p>}
   </article>;
   return sourceMails.length ? <MailPrivacy mail={sourceMails}>{card}</MailPrivacy> : card;
