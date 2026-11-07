@@ -77,9 +77,15 @@ instruction, to that provider.
 Attachments and other mail are excluded. Review the resulting pending proposal in
 action history and approve it to create a local draft. Nothing is sent.
 
-Existing approval requires MCP enabled in Settings; saving a key and preparing a
-proposal do not enable MCP or sending. BYOK testing and independent review are
-pending; see [ADR 0045](adr/0045-agent-review-byok.md).
+Approving a proposal the app prepared does not need MCP. Saving a key and
+preparing a proposal do not enable MCP or sending. See
+[ADR 0045](adr/0045-agent-review-byok.md).
+
+Without an API key, choose Claude Code (signed in) as the provider and click
+Use Claude Code. The app runs the `claude` CLI already signed in on this device,
+with all tools, MCP servers, user settings and hooks off. Click Start agent on
+the card to prepare replies for new mail automatically. See
+[ADR 0127](adr/0127-in-app-agent-without-key-or-mcp.md).
 
 ### Connect an MCP client
 

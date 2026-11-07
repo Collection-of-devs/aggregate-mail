@@ -72,11 +72,12 @@ export function AgentAutomation({ grant, api, disabled, reload, mcpEnabled }: { 
     <label className="settings-row"><span>Prepare replies automatically</span>
       <input type="checkbox" role="switch" checked={enabled} disabled={!loaded || pending || disabled || !provider?.hasKey && !enabled}
         onChange={(event) => void save(event.target.checked, event.target.checked ? "Automatic replies on." : "Automatic replies off.")} /></label>
-    {!loaded ? null : !provider?.hasKey ? <p className="work-meta">Add a provider key under Bring your own key to run this assistant automatically.</p> : <>
+    {!loaded ? null : !provider?.hasKey ? <p className="work-meta">Add a provider key, or choose Claude Code (signed in), under Bring your own key to start this agent.</p> : <>
       <p className="work-meta">{enabled
         ? <>On. For each new email in its accounts, this assistant sends the email's subject, sender, recipient and plain text to <Redact text={provider.baseURL} /> and puts a reply proposal in the Review queue. Nothing is sent. {count} of {saved!.dailyLimit} today.</>
         : "Off. This assistant prepares replies only when you click Prepare draft."}
-        {enabled && !mcpEnabled && " Approving a proposal requires MCP enabled in Settings."}</p>
+      </p>
+      {!enabled && <button type="button" className="button" disabled={pending || disabled} onClick={() => void save(true, "Agent started. Automatic replies on.")}>Start agent</button>}
       {saved?.lastRunAt && saved.lastResult && <p className="work-meta">Last run {new Date(saved.lastRunAt).toLocaleString()}: {saved.lastResult}</p>}
       <details>
         <summary>Automatic reply options</summary>

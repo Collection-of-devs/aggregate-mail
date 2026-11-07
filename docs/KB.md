@@ -635,6 +635,11 @@ Synthetic checks: `server/agent-provider.test.ts`,
 `src/agent-automation.test.tsx`, `src/agent-provider.test.tsx`. See
 [ADR 0123](adr/0123-automatic-assistant-replies.md).
 
+Provider `claude-code` runs the signed-in `claude` CLI with no key, tools, MCP,
+settings or session (`cliCompletion` in `server/agent-provider.ts`, runner
+injectable as `runCli`). App-prepared proposals carry `origin: "app"` and are
+approved without MCP on. See [ADR 0127](adr/0127-in-app-agent-without-key-or-mcp.md).
+
 Mounted `src/workbench.test.tsx` regressions hold an old workspace response
 across acknowledged and stored-but-lost preparation, then require a new read
 before releasing the hold. They also cover failed fresh reads, visible proposal

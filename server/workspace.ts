@@ -193,7 +193,7 @@ export function assertAgent(agentId: string, tool: AgentTool, accountId?: string
     throw new AgentPermissionError(tool);
   return grant!;
 }
-export function propose(agentId: string, action: AgentAction, value: unknown, sourceMailId?: string): AgentProposal {
+export function propose(agentId: string, action: AgentAction, value: unknown, sourceMailId?: string, origin?: "app"): AgentProposal {
   let accountId: string;
   let payload: AgentProposal["payload"];
   if (action === "draft") {
@@ -214,7 +214,7 @@ export function propose(agentId: string, action: AgentAction, value: unknown, so
   assertAgent(agentId, toolFor(action), accountId);
   if (sourceMailId)
     sourceIds([sourceMailId], accountId);
-  const content = { id: randomUUID(), agentId, accountId, action, payload, sourceMailId, sourceFingerprint: sourceMailId ? fingerprint(sourceMailId) : undefined, createdAt: Date.now() };
+  const content = { id: randomUUID(), agentId, accountId, action, payload, sourceMailId, sourceFingerprint: sourceMailId ? fingerprint(sourceMailId) : undefined, ...(origin ? { origin } : {}), createdAt: Date.now() };
   const proposal: AgentProposal = { ...content, digest: digest(content), status: "pending" };
   put("proposal", proposal.id, proposal);
   return proposal;
@@ -227,7 +227,8 @@ async function approve(id: string, expected: string) {
     if (current.status !== "pending" || current.digest !== expected)
       return fail(409, "Proposal changed or has already been consumed.");
     assertAgent(current.agentId, toolFor(current.action), current.accountId);
-    if (!all("mcp")[0]?.enabled)
+    // In-app agent proposals never used MCP, so turning MCP off does not revoke them.
+    if (current.origin !== "app" && !all("mcp")[0]?.enabled)
       return fail(403, "MCP is disabled. Agent approvals are revoked.");
     if (current.sourceMailId && (!get("mail", current.sourceMailId) || fingerprint(current.sourceMailId) !== current.sourceFingerprint))
       return fail(409, "Conversation evidence changed. Request a fresh proposal.");
@@ -237,7 +238,7 @@ async function approve(id: string, expected: string) {
   });
   const validateExecution = () => {
     assertAgent(proposal.agentId, toolFor(proposal.action), proposal.accountId);
-    if (!all("mcp")[0]?.enabled)
+    if (proposal.origin !== "app" && !all("mcp")[0]?.enabled)
       fail(403, "MCP was disabled before execution.");
     if (proposal.sourceMailId && (!get("mail", proposal.sourceMailId) || fingerprint(proposal.sourceMailId) !== proposal.sourceFingerprint))
       fail(409, "Conversation evidence changed before execution.");
