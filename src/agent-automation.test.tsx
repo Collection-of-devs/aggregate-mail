@@ -45,8 +45,10 @@ test("the user switches automatic replies on and off per assistant", async () =>
     assert.equal(off.method, "PUT"); assert.equal(off.body.enabled, false); assert.equal(off.body.revision, settings(true).revision);
     assert.equal(ui.toggle()!.checked, false);
     assert.match(ui.container.textContent!, /Off\. This assistant prepares replies only when you click Prepare draft/);
-    await ui.click(ui.toggle()!);
+    const start = [...ui.container.querySelectorAll("button")].find((button) => button.textContent === "Start agent")!;
+    await ui.click(start);
     assert.equal(ui.calls.at(-1)!.body.enabled, true); assert.equal(ui.toggle()!.checked, true);
+    assert.equal([...ui.container.querySelectorAll("button")].some((button) => button.textContent === "Start agent"), false, "hidden while running");
     const limit = [...ui.container.querySelectorAll("label")].find((label) => label.childNodes[0]?.textContent === "Daily limit")!.querySelector("input")!;
     await act(async () => {
       Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!.call(limit, "");
@@ -70,7 +72,7 @@ test("without a key the switch stays off and points to Bring your own key", asyn
   const ui = await mount({ key: false, automation: null });
   try {
     assert.equal(ui.toggle()!.checked, false); assert.equal(ui.toggle()!.disabled, true);
-    assert.match(ui.container.textContent!, /Add a provider key under Bring your own key/);
+    assert.match(ui.container.textContent!, /Add a provider key, or choose Claude Code \(signed in\), under Bring your own key/);
     assert.equal(ui.calls.some((call) => call.method !== "GET"), false);
   } finally { await ui.close(); }
 });

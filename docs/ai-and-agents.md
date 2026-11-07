@@ -77,9 +77,16 @@ instruction, to that provider.
 Attachments and other mail are excluded. Review the resulting pending proposal in
 action history and approve it to create a local draft. Nothing is sent.
 
-Existing approval requires MCP enabled in Settings; saving a key and preparing a
-proposal do not enable MCP or sending. BYOK testing and independent review are
-pending; see [ADR 0045](adr/0045-agent-review-byok.md).
+Approving a proposal the app prepared does not need MCP. Proposals prepared
+before version 0.2.33 carry no app origin and still need MCP on. Saving a key and
+preparing a proposal do not enable MCP or sending. See
+[ADR 0045](adr/0045-agent-review-byok.md).
+
+Without an API key, choose Claude Code (signed in) as the provider and click
+Use Claude Code. The app runs the `claude` CLI already signed in on this device,
+with all tools, MCP servers, user settings and hooks off. Click Start agent on
+the card to prepare replies for new mail automatically. See
+[ADR 0127](adr/0127-in-app-agent-without-key-or-mcp.md).
 
 ### Connect an MCP client
 
@@ -160,7 +167,9 @@ encrypted in the same SQLite store as mail, protected by Electron safeStorage on
 desktop. Credentials are never stored in `settings.env`.
 
 Requests with browser origins or non-local hostnames are rejected. Disabling MCP
-or revoking a grant blocks its access and pending approvals. Keep copied client
+blocks MCP access and approval of MCP-created proposals; replies the app
+prepared itself stay approvable, except older ones prepared before 0.2.33. Revoking a grant blocks its access and all its
+pending approvals. Keep copied client
 configurations private because they contain credentials. A grant permits its
 selected reads, proposal preparation and any explicitly selected local creation
 tools.

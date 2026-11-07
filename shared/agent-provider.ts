@@ -2,8 +2,11 @@ export const agentProviders = {
   openai: { name: "OpenAI", baseURL: "https://api.openai.com/v1", model: "gpt-4.1-mini" },
   deepseek: { name: "DeepSeek", baseURL: "https://api.deepseek.com/v1", model: "deepseek-chat" },
   custom: { name: "Other OpenAI-compatible", baseURL: "", model: "" },
+  // Runs the Claude Code CLI already signed in on this device. No API key is stored.
+  "claude-code": { name: "Claude Code (signed in)", baseURL: "local:claude-code", model: "sonnet" },
 } as const;
 export type AgentProvider = keyof typeof agentProviders;
+export const localAgentProvider = (provider: AgentProvider) => provider === "claude-code";
 // Credentials never belong in the renderer's saved-settings shape.
 export type AgentProviderSettings = {
   provider: AgentProvider;

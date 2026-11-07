@@ -10,6 +10,10 @@ unversioned history without treating it as a release record.
 
 ## Unreleased
 
+### Added
+
+- Start an assistant without an API key or MCP: choose Claude Code (signed in) under Bring your own key to use the Claude Code app already signed in on this device. It runs with all tools off. A Start agent button turns on automatic replies, and approving replies the app prepared no longer needs MCP enabled.
+
 ## 0.2.32 - 2026-11-07
 
 ### Fixed

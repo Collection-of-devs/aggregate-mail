@@ -21,7 +21,10 @@ test("BYOK settings and reviewed drafts preserve provider, account and evidence 
   let resolveAddresses = async (_host: string): Promise<{ address: string; family: number }[]> => [{ address: "8.8.8.8", family: 4 }];
   let deadline = () => AbortSignal.timeout(30000);
   const app = express(); app.use(express.json()); mountWorkspace(app);
-  mountAgentProvider(app, { resolve: (host) => resolveAddresses(host), deadline: () => deadline() });
+  type Cli = { command: string; args: string[]; input: string; cwd: string; env: NodeJS.ProcessEnv };
+  const cliCalls: Cli[] = [];
+  let cliRespond: () => Promise<{ code: number | null; stdout: string }> = async () => ({ code: 0, stdout: JSON.stringify({ is_error: false, result: "A synthetic CLI reply." }) });
+  mountAgentProvider(app, { resolve: (host) => resolveAddresses(host), deadline: () => deadline(), runCli: async (command, args, input, { cwd, env }) => { cliCalls.push({ command, args, input, cwd, env }); return cliRespond(); } });
   const server = app.listen(0, "127.0.0.1");
   await new Promise<void>((resolve) => server.once("listening", resolve));
   const address = server.address(); assert.ok(address && typeof address === "object");
@@ -118,10 +121,38 @@ test("BYOK settings and reviewed drafts preserve provider, account and evidence 
       assert.equal(result.body.action, "draft"); assert.equal(result.body.status, "pending");
       assert.deepEqual(result.body.payload, { accountId: "a", to: ["reply@example.test"], subject: "Re: Review request", body: "A synthetic reply.", inReplyTo: mail.messageId, references: [mail.messageId] });
       assert.equal(store.all("draft").length, 0); assert.equal(store.get("mail", mail.id)?.unread, true);
-      store.put("mcp", "settings", { enabled: true, allowSending: false, token: "synthetic-mcp" });
+      assert.equal(result.body.origin, "app");
+      // In-app agent proposals are approved with MCP off.
+      store.put("mcp", "settings", { enabled: false, allowSending: false, token: null });
       const approved = await request<AgentProposal>(`/agent/proposals/${result.body.id}/approve`, "POST", { digest: result.body.digest });
       assert.equal(approved.status, 200); assert.equal(approved.body.status, "succeeded");
       assert.equal(store.all("draft").length, 1); assert.equal(calls.length, 1, "approval creates a local draft only");
+    });
+    await t.test("signed-in Claude Code needs no key or MCP, runs with tools off and gets no app secrets", async () => {
+      const route = await fixture(); cliCalls.length = 0;
+      assert.equal((await request(route, "PUT", { provider: "claude-code", model: "sonnet", apiKey: secret, revision: null })).status, 400, "no key for the CLI");
+      assert.equal((await request(route, "PUT", { provider: "claude-code", model: "--dangerously-skip-permissions", revision: null })).status, 400, "model is never an option");
+      const saved = await request<AgentProviderSettings>(route, "PUT", { provider: "claude-code", model: "sonnet", revision: null });
+      assert.equal(saved.status, 200); assert.equal(saved.body.hasKey, true); assert.equal(store.get("agentProvider", agent.id)?.apiKey, "");
+      const result = await prepare(route, saved.body); assert.equal(result.status, 201);
+      assert.equal(calls.length, 0, "no HTTP provider request"); assert.equal(cliCalls.length, 1);
+      const call = cliCalls[0];
+      assert.equal(call.command, "claude");
+      for (const flag of ["-p", "--strict-mcp-config", "--no-session-persistence"]) assert.ok(call.args.includes(flag));
+      assert.equal(call.args[call.args.indexOf("--tools") + 1], ""); assert.equal(call.args[call.args.indexOf("--setting-sources") + 1], "");
+      assert.equal(call.env.MAIL_DATA_KEY, undefined); assert.equal(call.env.MAIL_DATA_DIR, undefined);
+      assert.equal(existsSync(call.cwd), false, "temporary working folder is removed");
+      assert.deepEqual(JSON.parse(call.input).email.body, mail.body); assert.equal(call.input.includes("NEIGHBOR-SECRET"), false);
+      assert.equal(result.body.status, "pending"); assert.equal(result.body.origin, "app");
+      assert.equal((result.body.payload as { body: string }).body, "A synthetic CLI reply.");
+      const approved = await request<AgentProposal>(`/agent/proposals/${result.body.id}/approve`, "POST", { digest: result.body.digest });
+      assert.equal(approved.status, 200, "approval works with MCP off"); assert.equal(store.all("draft").length, 1);
+      store.remove("proposal", result.body.id);
+      cliRespond = async () => ({ code: 1, stdout: JSON.stringify({ is_error: true, result: "Not logged in. Please run /login" }) });
+      const unsigned = await prepare(route, saved.body); assert.equal(unsigned.status, 401); assert.match((unsigned.body as unknown as { error: string }).error, /not signed in/);
+      cliRespond = async () => { throw Object.assign(new Error("spawn claude ENOENT"), { code: "ENOENT" }); };
+      const missing = await prepare(route, saved.body); assert.equal(missing.status, 502); assert.match((missing.body as unknown as { error: string }).error, /not found/);
+      cliRespond = async () => ({ code: 0, stdout: JSON.stringify({ is_error: false, result: "A synthetic CLI reply." }) });
     });
     await t.test("provider content cannot control recipient, account or action; prompt and output have limits", async () => {
       const route = await fixture(); const config = await save(route);
