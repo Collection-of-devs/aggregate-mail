@@ -80,12 +80,13 @@ export type CliRun = (command: string, args: string[], input: string, options: {
 type ProviderDependencies = { resolve?: Resolver; deadline?: () => AbortSignal; changed?: () => void; runCli?: CliRun };
 const cliOutputLimit = 262144;
 const runCli: CliRun = (command, args, input, { cwd, env, signal }) => new Promise((resolve, reject) => {
-  const child = spawn(command, args, { cwd, env, signal, stdio: ["pipe", "pipe", "ignore"], windowsHide: true });
+  const child = spawn(command, args, { cwd, env, signal, stdio: ["pipe", "pipe", "ignore"], windowsHide: true, killSignal: "SIGKILL" });
   const chunks: Buffer[] = [];
   let length = 0;
   child.stdout.on("data", (chunk: Buffer) => {
     length += chunk.length;
-    if (length > cliOutputLimit) child.kill(); else chunks.push(chunk);
+    // SIGKILL: a stuck child cannot ignore it. The CLI holds no state worth flushing.
+    if (length > cliOutputLimit) child.kill("SIGKILL"); else chunks.push(chunk);
   });
   child.on("error", reject);
   child.on("close", (code) => length > cliOutputLimit ? reject(new ProviderError(502, "Claude Code reply exceeded the size limit.")) : resolve({ code, stdout: Buffer.concat(chunks).toString("utf8") }));
