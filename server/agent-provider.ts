@@ -282,9 +282,9 @@ async function automate(mailIds: string[]) {
       if ("skip" in next) continue;
       if ("stop" in next) { result = next.stop ?? result; break; }
       if (inFlight.has(agentId)) {
-        // Only eligible mail waits for a manual Prepare draft (at most its 30-second deadline).
+        // Only eligible mail waits for a manual Prepare draft (at most its 30-second HTTP or 120-second Claude Code deadline).
         const revision = next.config.revision;
-        for (let waited = 0; inFlight.has(agentId) && !mailIsQuiesced() && waited < 60000; waited += 250) await new Promise((resolve) => setTimeout(resolve, 250));
+        for (let waited = 0; inFlight.has(agentId) && !mailIsQuiesced() && waited < 150000; waited += 250) await new Promise((resolve) => setTimeout(resolve, 250));
         // Read everything again: the user may have changed the switch, options or key meanwhile.
         next = step(agentId, mailId);
         if ("skip" in next) continue;
