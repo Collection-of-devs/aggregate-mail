@@ -166,7 +166,9 @@ encrypted in the same SQLite store as mail, protected by Electron safeStorage on
 desktop. Credentials are never stored in `settings.env`.
 
 Requests with browser origins or non-local hostnames are rejected. Disabling MCP
-or revoking a grant blocks its access and pending approvals. Keep copied client
+blocks MCP access and approval of MCP-created proposals; replies the app
+prepared itself stay approvable. Revoking a grant blocks its access and all its
+pending approvals. Keep copied client
 configurations private because they contain credentials. A grant permits its
 selected reads, proposal preparation and any explicitly selected local creation
 tools.

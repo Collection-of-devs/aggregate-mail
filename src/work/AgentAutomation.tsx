@@ -74,7 +74,7 @@ export function AgentAutomation({ grant, api, disabled, reload, mcpEnabled }: { 
         onChange={(event) => void save(event.target.checked, event.target.checked ? "Automatic replies on." : "Automatic replies off.")} /></label>
     {!loaded ? null : !provider?.hasKey ? <p className="work-meta">Add a provider key, or choose Claude Code (signed in), under Bring your own key to start this agent.</p> : <>
       <p className="work-meta">{enabled
-        ? <>On. For each new email in its accounts, this assistant sends the email's subject, sender, recipient and plain text to {provider.provider === "claude-code" ? "Claude Code on this device" : <Redact text={provider.baseURL} />} and puts a reply proposal in the Review queue. Nothing is sent. {count} of {saved!.dailyLimit} today.</>
+        ? <>On. For each new email in its accounts, this assistant sends the email's subject, sender, recipient and plain text to {provider.provider === "claude-code" ? "Anthropic, through the Claude Code CLI on this device" : <Redact text={provider.baseURL} />} and puts a reply proposal in the Review queue. Nothing is sent. {count} of {saved!.dailyLimit} today.</>
         : "Off. This assistant prepares replies only when you click Prepare draft."}
       </p>
       {!enabled && <button type="button" className="button" disabled={pending || disabled} onClick={() => void save(true, "Agent started. Automatic replies on.")}>Start agent</button>}

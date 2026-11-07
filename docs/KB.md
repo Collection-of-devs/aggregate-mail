@@ -568,7 +568,7 @@ external write is involved.
 ## Agent review provider keys
 
 `shared/agent-provider.ts` contains the sanitized provider settings shape and
-OpenAI/DeepSeek presets. `server/agent-provider.ts` mounts authenticated settings
+OpenAI/DeepSeek presets and the keyless `claude-code` provider (saved like a key for every `hasKey` check, including automation PUT). `server/agent-provider.ts` mounts authenticated settings
 routes at `/api/agent/grants/:id/provider`: GET returns settings or null, PUT
 saves bounded fields with an optional new key and the current revision (null
 for a first save), and DELETE requires the saved revision. Keys remain in the
@@ -582,7 +582,7 @@ grant's account scope with both `read_email` and `propose_draft`. The request
 sends only bounded plain-text selected-email context. A provider reply becomes
 the body of a pending draft proposal, with locally derived recipient, subject
 and threading fields. Existing review creates the local draft; sending and
-MCP settings are unchanged. The existing approval path still requires MCP on.
+MCP settings are unchanged. These app-origin proposals (`origin: "app"`) are approved with MCP off; MCP-created and older proposals still require MCP on.
 
 The source fingerprint, preview, current account, grant and provider revision
 are rechecked after the external request. A per-grant guard rejects concurrent
@@ -621,7 +621,7 @@ without `read_email` and `propose_draft`. `server/index.ts` passes each
 `new-mail` event's mail IDs to `runAgentAutomations`, which reuses
 `prepareProposal` (the Prepare draft path) serially and emits `mail-changed`
 when it creates proposals. It skips sent, read, archived, out-of-scope,
-automated-sender and already-proposed mail, waits up to 60 seconds for a manual
+automated-sender and already-proposed mail, waits up to 150 seconds for a manual
 preparation on the same grant, rechecks for an existing proposal before the
 request and before saving, counts every request that reaches the provider
 toward the daily limit, stops a batch on 401, 403, 429, 502 or 504, and
